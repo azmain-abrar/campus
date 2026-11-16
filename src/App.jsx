@@ -28,3 +28,4 @@ export default function App() {
     <Route path="*" element={<Navigate to="/dashboard" replace/>}/>
   </Routes></AuthProvider>;
 }
+<Route path="*" element={<NotFound />} />
