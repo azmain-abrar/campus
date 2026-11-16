@@ -26,6 +26,8 @@ Example:
 - Three modules: Student records (starter data/dashboard), Notice Management, Event Management.
 - React Router routes: `/login`, `/dashboard`, `/notices`, `/events`.
 - Create, read, update and delete for notices and events.
+- Student-owned course management: each student creates and manages their own courses. Admins can view all student courses.
+- CGPA calculator using course credits and the configured 4.00 grade-point scale.
 - Reusable components, props, state, effects, conditional rendering, lists, controlled forms and immutable updates.
 - ShadCN-style reusable Button and Card components.
 - Responsive navigation, semantic labels, focus styles and accessible feedback.
@@ -42,12 +44,7 @@ Example:
 5. Copy `.env.example` to `.env` and fill in the Firebase Web App configuration values.
 6. Restart the dev server.
 
-Create these Firestore collections:
-- `students`
-- `notices`
-- `events`
-
-For a classroom demo only, configure appropriate Firestore security rules before using real student information. Do not use public read/write rules for real data. A production-ready role/permission system and per-user record rules still need to be configured for your institution.
+Apply the security rules in `firestore.rules` (Firebase Console → Firestore Database → Rules). Follow `FIREBASE_SETUP.md` to configure the admin role and understand the data structure. Courses are stored under `users/{uid}/courses/{courseId}`, so students cannot read or modify another student's courses. Admins can view all courses. Never publish public read/write rules for real student data.
 
 ## Important project notes
 

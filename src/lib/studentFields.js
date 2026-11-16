@@ -24,9 +24,15 @@ export function validateStudent(values, rows, editingId) {
 export function cleanStudent(values) {
   const out = {};
   Object.entries(values).forEach(([k, v]) => { out[k] = typeof v === "string" ? v.trim() : v; });
+  if (out.email) out.email = out.email.toLowerCase(); // keeps "my own record" matching reliable
   return out;
 }
 
 export function initials(name = "") {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("") || "?";
+}
+
+// Admins see every student; everyone else only sees the record that has their own email.
+export function studentFilter(isAdmin, user) {
+  return isAdmin ? undefined : { field: "email", value: String(user?.email || "").toLowerCase() };
 }

@@ -1,28 +1,15 @@
 import {
-  addDoc, collection, deleteDoc, doc, getDocs, updateDoc
+  addDoc, collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where
 } from "firebase/firestore";
 import { db, firebaseEnabled } from "./firebase";
 
 const KEYS = {
-  students: "cc_students",
-  notices: "cc_notices",
-  events: "cc_events",
+  students: "cc_students_v2",
+  notices: "cc_notices_v2",
+  events: "cc_events_v2",
 };
 
-const seed = {
-  students: [
-    { id: "s1", name: "Ayesha Rahman", email: "ayesha@example.com", department: "CSE", studentId: "CSE-2301" },
-    { id: "s2", name: "Tanvir Hasan", email: "tanvir@example.com", department: "EEE", studentId: "EEE-2308" },
-  ],
-  notices: [
-    { id: "n1", title: "Midterm examination schedule", category: "Academic", body: "The midterm examination schedule will be published by the department office.", date: "2026-11-10" },
-    { id: "n2", title: "Library hour update", category: "General", body: "The central library will remain open until 8:00 PM during weekdays.", date: "2026-11-08" },
-  ],
-  events: [
-    { id: "e1", title: "Programming Contest", date: "2026-11-25", location: "Computer Lab 2", description: "A friendly programming contest for all CSE students.", registered: [] },
-    { id: "e2", title: "Career & Internship Talk", date: "2026-12-02", location: "Auditorium", description: "Meet industry speakers and learn about career paths.", registered: [] },
-  ],
-};
+const seed = { students: [], notices: [], events: [] };
 
 function localRead(type) {
   const raw = localStorage.getItem(KEYS[type]);
@@ -34,12 +21,15 @@ function localWrite(type, rows) {
   localStorage.setItem(KEYS[type], JSON.stringify(rows));
 }
 
-export async function listRecords(type) {
+// filter (optional): { field, value } keeps only rows where field equals value.
+export async function listRecords(type, filter) {
   if (firebaseEnabled) {
-    const snap = await getDocs(collection(db, type));
+    const ref = collection(db, type);
+    const snap = await getDocs(filter ? query(ref, where(filter.field, "==", filter.value)) : ref);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
-  return localRead(type);
+  const rows = localRead(type);
+  return filter ? rows.filter((r) => String(r[filter.field] || "").toLowerCase() === String(filter.value).toLowerCase()) : rows;
 }
 
 export async function createRecord(type, values) {
@@ -71,4 +61,15 @@ export async function removeRecord(type, id) {
 
 export function clearDemoData() {
   Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
+}
+
+// Only emails listed in "allowedEmails" (kept in sync with the students list by the admin) can enter the app.
+export async function addAllowedEmail(email) {
+  if (!firebaseEnabled || !email) return;
+  const key = String(email).trim().toLowerCase();
+  await setDoc(doc(db, "allowedEmails", key), { email: key });
+}
+export async function removeAllowedEmail(email) {
+  if (!firebaseEnabled || !email) return;
+  await deleteDoc(doc(db, "allowedEmails", String(email).trim().toLowerCase()));
 }

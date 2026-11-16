@@ -19,9 +19,9 @@ export default function RecordForm({ fields, initial = {}, onSubmit, onCancel, s
       field.type === "textarea" ? <textarea required={field.required !== false} rows="3" value={values[field.name] || ""} onChange={(e) => change(field.name,e.target.value)} placeholder={field.placeholder || ""} className="form-control resize-y"/> :
       <input required={field.required !== false} type={field.type || "text"} value={values[field.name] || ""} onChange={(e) => change(field.name,e.target.value)} placeholder={field.placeholder || ""} className="form-control"/>}
     </label>)}
-    <div className="flex justify-end gap-2 pt-2">
+    <section className="flex justify-end gap-2 pt-2">
       <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
       <Button type="submit">{submitLabel}</Button>
-    </div>
+    </section>
   </form>;
 }

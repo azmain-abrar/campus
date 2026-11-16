@@ -8,6 +8,8 @@ import Notices from "./pages/Notices";
 import Events from "./pages/Events";
 import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
+import Courses from "./pages/Courses";
+import CgpaCalculator from "./pages/CgpaCalculator";
 
 export default function App() {
   return <AuthProvider><Routes>
@@ -17,6 +19,8 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard/>}/>
         <Route path="/students" element={<Students/>}/>
         <Route path="/students/:id" element={<StudentProfile/>}/>
+        <Route path="/courses" element={<Courses/>}/>
+        <Route path="/cgpa" element={<CgpaCalculator/>}/>
         <Route path="/notices" element={<Notices/>}/>
         <Route path="/events" element={<Events/>}/>
       </Route>

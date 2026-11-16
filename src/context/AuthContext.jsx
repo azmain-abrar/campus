@@ -1,6 +1,30 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth, firebaseEnabled } from "../lib/firebase";
+import { GoogleAuthProvider, createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signInWithPopup, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db, firebaseEnabled } from "../lib/firebase";
+
+// Decides who may enter. Returns { role } on success or { message } when access is refused.
+// Admins: users/{uid}.role === "admin". Everyone else must have a verified email that the admin added
+// (allowedEmails/{email}, created automatically when the admin adds a student).
+async function checkAccess(current) {
+  const email = String(current.email || "").toLowerCase();
+  const userRef = doc(db, "users", current.uid);
+  try {
+    let snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, { email: current.email, role: "user" });
+      snap = await getDoc(userRef);
+    }
+    if (snap.data().role === "admin") return { role: "admin" };
+    if (!current.emailVerified) return { message: `Please verify your email first. Open the link we sent to ${email}, then sign in again.` };
+    const allowed = await getDoc(doc(db, "allowedEmails", email));
+    if (!allowed.exists()) return { message: `${email} has not been added by the admin, so it cannot access CampusConnect.` };
+    return { role: "user" };
+  } catch (e) {
+    console.error("Access check failed", e);
+    return { message: "Could not check your access. Check your connection and Firestore rules." };
+  }
+}
 
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
@@ -8,12 +32,22 @@ export function AuthProvider({ children }) {
     if (firebaseEnabled) return null;
     try { return JSON.parse(localStorage.getItem("cc_demo_user")) || null; } catch { return null; }
   });
+  const [role, setRole] = useState(firebaseEnabled ? "user" : "admin");
   const [ready, setReady] = useState(!firebaseEnabled);
+  const [authMessage, setAuthMessage] = useState("");
 
   useEffect(() => {
     if (!firebaseEnabled) return;
-    return onAuthStateChanged(auth, (current) => {
-      setUser(current ? { uid: current.uid, email: current.email } : null);
+    return onAuthStateChanged(auth, async (current) => {
+      if (!current) { setRole("user"); setUser(null); setReady(true); return; }
+      const access = await checkAccess(current);
+      if (access.role) {
+        setAuthMessage(""); setRole(access.role);
+        setUser({ uid: current.uid, email: current.email, emailVerified: current.emailVerified });
+      } else {
+        setAuthMessage(access.message); setUser(null);
+        await signOut(auth);
+      }
       setReady(true);
     });
   }, []);
@@ -31,6 +65,7 @@ export function AuthProvider({ children }) {
   async function register(email, password) {
     if (firebaseEnabled) {
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      try { await sendEmailVerification(result.user); } catch (e) { console.error("Verification email failed", e); }
       return { uid: result.user.uid, email: result.user.email };
     }
     const demo = { uid: "demo-" + email, email };
@@ -38,13 +73,18 @@ export function AuthProvider({ children }) {
     setUser(demo);
     return demo;
   }
+  async function loginWithGoogle() {
+    if (!firebaseEnabled) throw new Error("Google sign-in needs Firebase to be enabled.");
+    const result = await signInWithPopup(auth, new GoogleAuthProvider());
+    return { uid: result.user.uid, email: result.user.email };
+  }
   async function logout() {
     if (firebaseEnabled) await signOut(auth);
     else localStorage.removeItem("cc_demo_user");
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, ready, login, register, logout }}>
+  return <AuthContext.Provider value={{ authMessage, clearAuthMessage: () => setAuthMessage(""), user, ready, role, isAdmin: role === "admin", login, register, loginWithGoogle, logout }}>
     {children}
   </AuthContext.Provider>;
 }

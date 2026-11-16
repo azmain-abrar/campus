@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validGrade(grade) {
+      return grade == null
+        || (grade is number && grade >= 0 && grade <= 4);
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+
+      // Users can create only their own regular profile.
+      allow create: if isOwner(uid)
+        && request.resource.data.role == 'user'
+        && request.resource.data.email == request.auth.token.email;
+
+      // Neither students nor admins can change the account's role/email here.
+      // Admins can still update other profile fields.
+      allow update: if (
+          isAdmin()
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.email == resource.data.email
+        ) || (
+          isOwner(uid)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.email == resource.data.email
+        );
+      allow delete: if isAdmin();
+
+      match /courses/{courseId} {
+        allow read: if isOwner(uid) || isAdmin();
+
+        // Students create courses with no grade assigned.
+        allow create: if isOwner(uid)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.courseCode is string
+          && request.resource.data.courseName is string
+          && request.resource.data.semester is string
+          && request.resource.data.credit is number
+          && request.resource.data.credit > 0
+          && request.resource.data.credit <= 10
+          && request.resource.data.gradePoint == null;
+
+        // Admin can assign or update grades directly. Students can edit course details only.
+        allow update: if request.resource.data.ownerUid == resource.data.ownerUid
+          && (
+            (isAdmin()
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gradePoint', 'updatedAt'])
+              && validGrade(request.resource.data.gradePoint))
+            ||
+            (isOwner(uid)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['courseCode', 'courseName', 'credit', 'semester', 'instructor', 'updatedAt'])
+              && request.resource.data.gradePoint == resource.data.gradePoint
+              && request.resource.data.courseCode is string
+              && request.resource.data.courseName is string
+              && request.resource.data.semester is string
+              && request.resource.data.credit is number
+              && request.resource.data.credit > 0
+              && request.resource.data.credit <= 10)
+          );
+
+        // Students may delete only courses without an assigned grade.
+        allow delete: if isAdmin()
+          || (isOwner(uid)
+            && (!('gradePoint' in resource.data)
+              || resource.data.gradePoint == null));
+      }
+    }
+
+    // Required for admin collectionGroup('courses') queries.
+    match /{path=**}/courses/{courseId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    match /allowedEmails/{email} {
+      allow read: if isAdmin()
+        || (signedIn() && request.auth.token.email == email);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /students/{studentId} {
+      allow read: if signedIn()
+        && (isAdmin() || resource.data.email == request.auth.token.email);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /notices/{noticeId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /events/{eventId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
