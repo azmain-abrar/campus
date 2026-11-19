@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Notices from "./pages/Notices";
 import Events from "./pages/Events";
 import Students from "./pages/Students";
+import Staff from "./pages/Staff";
 import StudentProfile from "./pages/StudentProfile";
 import Courses from "./pages/Courses";
 import CgpaCalculator from "./pages/CgpaCalculator";
@@ -24,6 +25,7 @@ export default function App() {
                     <Route element={<Layout />}>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/students" element={<Students />} />
+                        <Route path="/staff" element={<Staff />} />
                         <Route path="/students/:id" element={<StudentProfile />} />
                         <Route path="/courses" element={<Courses />} />
                         <Route path="/cgpa" element={<CgpaCalculator />} />

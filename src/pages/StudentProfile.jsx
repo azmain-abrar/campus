@@ -10,7 +10,7 @@ import Modal from "../components/Modal";
 import RecordForm from "../components/RecordForm";
 
 export default function StudentProfile() {
-  const { isAdmin, user } = useAuth();
+  const { canManage, user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -21,7 +21,7 @@ export default function StudentProfile() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setRows(await listRecords("students", studentFilter(isAdmin, user))); }
+    try { setRows(await listRecords("students", studentFilter(canManage, user))); }
     catch (e) { setError(e.message || "Could not load student."); }
     finally { setLoading(false); }
   }, [isAdmin, user]);
@@ -67,7 +67,7 @@ export default function StudentProfile() {
         <section className="grid h-16 w-16 place-items-center rounded-2xl bg-indigo-600 text-xl font-extrabold text-white">{initials(student.name)}</section>
         <section><h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{student.name}</h1><p className="text-sm text-slate-500">{student.department || "Department not set"}{student.studentId ? ` · ${student.studentId}` : ""}</p></section>
       </section>
-      {isAdmin && <section className="flex gap-2">
+      {canManage && <section className="flex gap-2">
         <Button variant="outline" onClick={() => setEditing(true)}><Pencil size={16}/> Edit</Button>
         <Button variant="danger" onClick={remove}><Trash2 size={16}/> Delete</Button>
       </section>}
@@ -78,7 +78,7 @@ export default function StudentProfile() {
         <section className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="wrap-break-word text-sm text-slate-800">{value || "—"}</p></section>
       </section>)}
     </CardContent></Card>
-    {isAdmin && editing && <Modal title="Edit student" onClose={() => { setEditing(false); setFormError(""); }}>
+    {canManage && editing && <Modal title="Edit student" onClose={() => { setEditing(false); setFormError(""); }}>
       {formError && <section role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{formError}</section>}
       <RecordForm fields={studentFields} initial={student} onSubmit={save} onCancel={() => { setEditing(false); setFormError(""); }} submitLabel="Update student"/>
     </Modal>}

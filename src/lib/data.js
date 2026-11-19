@@ -73,3 +73,33 @@ export async function removeAllowedEmail(email) {
   if (!firebaseEnabled || !email) return;
   await deleteDoc(doc(db, "allowedEmails", String(email).trim().toLowerCase()));
 }
+
+// Staff access is controlled by an email allow-list managed only by admins.
+export async function listStaffEmails() {
+  if (firebaseEnabled) {
+    const snap = await getDocs(collection(db, "staffEmails"));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+  return JSON.parse(localStorage.getItem("cc_staff_emails") || "[]");
+}
+export async function addStaffEmail(email, name) {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key) throw new Error("Enter an email address.");
+  if (firebaseEnabled) {
+    await setDoc(doc(db, "staffEmails", key), { email: key, name: String(name || "").trim() });
+    await setDoc(doc(db, "allowedEmails", key), { email: key });
+    return;
+  }
+  const rows = await listStaffEmails();
+  if (!rows.some((r) => r.email === key)) rows.push({ id: key, email: key, name: String(name || "").trim() });
+  localStorage.setItem("cc_staff_emails", JSON.stringify(rows));
+}
+export async function removeStaffEmail(email) {
+  const key = String(email || "").trim().toLowerCase();
+  if (firebaseEnabled) {
+    await deleteDoc(doc(db, "staffEmails", key));
+    await deleteDoc(doc(db, "allowedEmails", key));
+    return;
+  }
+  localStorage.setItem("cc_staff_emails", JSON.stringify((await listStaffEmails()).filter((r) => r.email !== key)));
+}

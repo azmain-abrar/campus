@@ -14,7 +14,7 @@ const links = [
 ];
 
 export default function Layout() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isStaff } = useAuth();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -34,8 +34,8 @@ export default function Layout() {
           <section><section className="font-extrabold tracking-tight">CampusConnect</section><section className="text-xs text-slate-500">Smart campus, one place</section></section>
         </section>
         <section className="hidden items-center gap-3 md:flex">
-          <span className="max-w-48 truncate text-sm text-slate-500">{user?.email}</span>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isAdmin ? "bg-indigo-50 text-indigo-700" : "bg-slate-100 text-slate-600"}`}>{isAdmin ? "Admin" : "Student"}</span>
+          <span className="max-w-48 truncate text-sm text-slate-700">Welcome, {user?.name || "there"}</span>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isAdmin ? "bg-indigo-50 text-indigo-700" : "bg-slate-100 text-slate-600"}`}>{isAdmin ? "Admin" : isStaff ? "Staff" : "Student"}</span>
           <Button variant="outline" size="sm" onClick={handleLogout}><LogOut size={15}/> Sign out</Button>
         </section>
       </section>
@@ -44,7 +44,7 @@ export default function Layout() {
       <aside className={`${open ? "block" : "hidden"} border-r border-slate-200 bg-white p-4 md:block md:min-h-[calc(100vh-65px)]`}>
         <p className="mb-3 px-3 pt-3 text-[11px] font-bold uppercase tracking-[.15em] text-slate-400">Workspace</p>
         <nav className="space-y-1">
-          {links.map(({to,label,icon:Icon}) => <NavLink key={to} to={to} onClick={() => setOpen(false)} className={({isActive}) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
+          {[...links, ...(isAdmin ? [{ to: "/staff", label: "Staff", icon: Users }] : [])].map(({to,label,icon:Icon}) => <NavLink key={to} to={to} onClick={() => setOpen(false)} className={({isActive}) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
             <Icon size={18}/>{label}
           </NavLink>)}
         </nav>
@@ -54,7 +54,7 @@ export default function Layout() {
           <p className="mt-1 text-xs leading-5 text-indigo-100">Notices, events and student information in one simple space.</p>
         </section>
         <section className="mt-5 border-t border-slate-100 pt-4 md:hidden">
-          <section className="mb-3 flex items-center gap-2 text-xs text-slate-500"><UserRound size={14}/>{user?.email}</section>
+          <section className="mb-3 flex items-center gap-2 text-xs text-slate-500"><UserRound size={14}/>Welcome, {user?.name || "there"}</section>
           <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}><LogOut size={15}/> Sign out</Button>
         </section>
       </aside>

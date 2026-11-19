@@ -31,7 +31,7 @@ function CourseForm({ initial, onSubmit, onCancel, busy }) {
 }
 
 export default function Courses() {
-  const { user, isAdmin } = useAuth();
+  const { user, canManage } = useAuth();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,10 +43,10 @@ export default function Courses() {
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { setCourses(await listCourses(user, isAdmin)); }
+    try { setCourses(await listCourses(user, canManage)); }
     catch (e) { setError(e.message || "Could not load courses. Check your Firestore rules."); }
     finally { setLoading(false); }
-  }, [user, isAdmin]);
+  }, [user, canManage]);
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
@@ -96,20 +96,20 @@ export default function Courses() {
 
   return <main className="space-y-7">
     <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-      <section><p className="mb-2 text-xs font-bold uppercase tracking-[.18em] text-indigo-600">Academic workspace</p><h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{isAdmin ? "Student courses" : "My courses"}</h1><p className="mt-1 text-sm text-slate-500">{isAdmin ? "Each student's course list is organized separately." : "Your personal academic course collection."}</p></section>
-      {!isAdmin && <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus size={17} /> Add course</Button>}
+      <section><p className="mb-2 text-xs font-bold uppercase tracking-[.18em] text-indigo-600">Academic workspace</p><h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{canManage ? "Student courses" : "My courses"}</h1><p className="mt-1 text-sm text-slate-500">{canManage ? "Each student's course list is organized separately." : "Your personal academic course collection."}</p></section>
+      {!canManage && <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus size={17} /> Add course</Button>}
     </header>
 
-    {!isAdmin && <section className="grid gap-4 sm:grid-cols-3">
+    {!canManage && <section className="grid gap-4 sm:grid-cols-3">
       <Card><CardContent className="flex items-center justify-between p-5"><section><p className="text-sm text-slate-500">My courses</p><p className="mt-1 text-3xl font-extrabold">{ownCourses.length}</p></section><BookOpen className="text-indigo-600" size={25} /></CardContent></Card>
       <Card><CardContent className="flex items-center justify-between p-5"><section><p className="text-sm text-slate-500">Total credits</p><p className="mt-1 text-3xl font-extrabold">{totalCredits}</p></section><Layers3 className="text-violet-600" size={25} /></CardContent></Card>
       <Card><CardContent className="flex items-center justify-between p-5"><section><p className="text-sm text-slate-500">CGPA tool</p><p className="mt-1 text-sm font-bold">Calculate progress</p></section><Calculator className="text-indigo-600" size={25} /></CardContent></Card>
     </section>}
 
     {error && <aside role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</aside>}
-    {isAdmin && <label className="relative block"><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input className="form-control pl-10" placeholder="Search student, course or semester…" value={search} onChange={e => setSearch(e.target.value)} /></label>}
+    {canManage && <label className="relative block"><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input className="form-control pl-10" placeholder="Search student, course or semester…" value={search} onChange={e => setSearch(e.target.value)} /></label>}
 
-    {loading ? <Card><CardContent className="p-8 text-center text-sm text-slate-500">Loading courses…</CardContent></Card> : filtered.length === 0 ? <Card><CardContent className="p-10 text-center"><BookOpen className="mx-auto mb-3 text-slate-300" size={38} /><h2 className="font-bold text-slate-800">{isAdmin ? "No student courses yet" : "Your course list is empty"}</h2><p className="mt-1 text-sm text-slate-500">{isAdmin ? "Student course lists will appear here separately." : "Add your first course to start tracking credits and CGPA."}</p></CardContent></Card> : isAdmin ? <section className="space-y-5">
+    {loading ? <Card><CardContent className="p-8 text-center text-sm text-slate-500">Loading courses…</CardContent></Card> : filtered.length === 0 ? <Card><CardContent className="p-10 text-center"><BookOpen className="mx-auto mb-3 text-slate-300" size={38} /><h2 className="font-bold text-slate-800">{canManage ? "No student courses yet" : "Your course list is empty"}</h2><p className="mt-1 text-sm text-slate-500">{canManage ? "Student course lists will appear here separately." : "Add your first course to start tracking credits and CGPA."}</p></CardContent></Card> : canManage ? <section className="space-y-5">
       {grouped.map(([ownerUid, studentCourses], index) => <Card key={ownerUid} className="overflow-hidden border-slate-200 shadow-sm">
         <CardHeader className="border-b border-slate-100 bg-linear-to-r from-indigo-50 via-white to-violet-50">
           <section className="flex flex-wrap items-center justify-between gap-3"><section className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-indigo-600 text-white"><UserRound size={21} /></span><section><CardTitle>Student {index + 1}</CardTitle><p className="mt-1 font-mono text-xs text-slate-500">{ownerUid}</p></section></section><span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-indigo-700 ring-1 ring-indigo-100">{studentCourses.length} courses · {studentCourses.reduce((s, c) => s + Number(c.credit || 0), 0)} credits</span></section>
