@@ -13,6 +13,7 @@ CampusConnect is a university-focused web application designed to help students 
 - Event Information
 - Admin Dashboard
 - Admin Grade Management
+- Staff Management
 
 ## Technologies Used
 
